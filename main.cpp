@@ -42,7 +42,14 @@ int main(int argc, char* argv[]) {
 
 		if (events.window.event == SDL_WINDOWEVENT_CLOSE || keys[SDL_SCANCODE_ESCAPE])
 			finish = true;
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		SDL_GL_SwapWindow(window);
 	}
 
+	SDL_GL_DeleteContext(context);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
 	return 0;
 }
