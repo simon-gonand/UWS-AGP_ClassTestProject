@@ -15,16 +15,18 @@ using namespace std;
 
 GLuint meshIndexCount = 0;
 GLuint meshObjects[1];
-GLuint textures[1];
 
+// shaders programs
 GLuint skyboxProgram;
 GLuint textureProgram;
 
+// Textures
 GLuint skyboxTexture;
+GLuint textures[1];
 
 stack<glm::mat4> drawStack;
 
-glm::vec3 eye(4.0f, 3.0f, 3.0f);
+glm::vec3 eye(-2.0f, 1.0f, 8.0f);
 glm::vec3 at(0.0f, 1.0f, -1.0f);
 glm::vec3 up(0.0f, 1.0f, 0.0f);
 
@@ -166,6 +168,7 @@ void draw(SDL_Window* window) {
 
 	glDepthMask(GL_TRUE);
 
+	//simple cube for test
 	glUseProgram(textureProgram);
 	rt3d::setUniformMatrix4fv(textureProgram, "projection", glm::value_ptr(projection));
 
@@ -175,7 +178,15 @@ void draw(SDL_Window* window) {
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(1.0f, 1.0f, 1.0f));
 	rt3d::setUniformMatrix4fv(textureProgram, "modelView", glm::value_ptr(drawStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
+	drawStack.pop();
 
+	// cube for ground plane
+	glBindTexture(GL_TEXTURE_2D, textures[0]);
+	drawStack.push(drawStack.top());
+	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(-10.0f, -0.1f, -10.0f));
+	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(20.0f, 0.1f, 20.0f));
+	rt3d::setUniformMatrix4fv(textureProgram, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
 	SDL_GL_SwapWindow(window);
