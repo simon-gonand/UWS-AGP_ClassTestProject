@@ -18,7 +18,7 @@ GLuint meshObjects[1];
 
 // shaders programs
 GLuint skyboxProgram;
-GLuint textureProgram;
+GLuint gouraudProgram;
 
 // Textures
 GLuint skyboxTexture;
@@ -31,6 +31,21 @@ GLfloat r = 0.0f;
 glm::vec3 eye(-2.0f, 1.0f, 8.0f);
 glm::vec3 at(0.0f, 1.0f, -1.0f);
 glm::vec3 up(0.0f, 1.0f, 0.0f);
+
+rt3d::lightStruct light = {
+	{0.4f, 0.4f, 0.4f, 1.0f},
+	{1.0f, 1.0f, 1.0f, 1.0f},
+	{1.0f, 1.0f, 1.0f, 1.0f},
+	{-5.0f, 2.0f, 2.0f, 1.0f}
+};
+glm::vec4 lightPos(-5.0f, 2.0f, 2.0f, 1.0f);
+
+rt3d::materialStruct materialGroundPlane = {
+	{0.2f, 0.4f, 0.2f, 1.0f},
+	{0.5f, 1.0f, 0.5f, 1.0f},
+	{0.0f, 0.1f, 0.0f, 1.0f},
+	2.0f
+};
 
 SDL_Window* setupSDL(SDL_GLContext& context) {
 	// initialize video
@@ -120,7 +135,10 @@ GLuint loadCubeMapTexture(const char *fileName[6], GLuint *textureID) {
 }
 
 void init() {
-	textureProgram = rt3d::initShaders("src/texture.vert", "src/texture.frag");
+	gouraudProgram = rt3d::initShaders("src/gouraudShader.vert", "src/gouraudShader.frag");
+	rt3d::setLight(gouraudProgram, light);
+	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
+
 	skyboxProgram = rt3d::initShaders("src/skyboxTexture.vert", "src/skyboxTexture.frag");
 
 	const char* cubeTexFiles[6] = {
@@ -192,14 +210,14 @@ void draw(SDL_Window* window) {
 	glDepthMask(GL_TRUE);
 
 	//simple cube for test
-	glUseProgram(textureProgram);
-	rt3d::setUniformMatrix4fv(textureProgram, "projection", glm::value_ptr(projection));
+	glUseProgram(gouraudProgram);
+	rt3d::setUniformMatrix4fv(gouraudProgram, "projection", glm::value_ptr(projection));
 
 	glBindTexture(GL_TEXTURE_2D, textures[0]);
 	drawStack.push(drawStack.top());
 	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(0.0f, 1.0f, -10.0f));
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(1.0f, 1.0f, 1.0f));
-	rt3d::setUniformMatrix4fv(textureProgram, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
@@ -208,7 +226,7 @@ void draw(SDL_Window* window) {
 	drawStack.push(drawStack.top());
 	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(-10.0f, -0.1f, -10.0f));
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(20.0f, 0.1f, 20.0f));
-	rt3d::setUniformMatrix4fv(textureProgram, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
