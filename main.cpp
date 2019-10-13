@@ -26,6 +26,8 @@ GLuint textures[1];
 
 stack<glm::mat4> drawStack;
 
+GLfloat r = 0.0f;
+
 glm::vec3 eye(-2.0f, 1.0f, 8.0f);
 glm::vec3 at(0.0f, 1.0f, -1.0f);
 glm::vec3 up(0.0f, 1.0f, 0.0f);
@@ -138,6 +140,26 @@ void init() {
 	glEnable(GL_DEPTH_TEST);
 }
 
+glm::vec3 moveForward(glm::vec3 pos, GLfloat angle, GLfloat d) {
+	return glm::vec3(pos.x + d * std::sin(r * DEG_TO_RADIAN), pos.y, pos.z - d * std::cos(r * DEG_TO_RADIAN));
+}
+
+glm::vec3 moveRight(glm::vec3 pos, GLfloat angle, GLfloat d) {
+	return glm::vec3(pos.x + d * std::cos(r * DEG_TO_RADIAN), pos.y, pos.z + d * std::sin(r * DEG_TO_RADIAN));
+}
+
+void update() {
+	const Uint8* keys = SDL_GetKeyboardState(NULL);
+	if (keys[SDL_SCANCODE_W]) eye = moveForward(eye, r, 0.1f);
+	if (keys[SDL_SCANCODE_S]) eye = moveForward(eye, r, -0.1f);
+	if (keys[SDL_SCANCODE_D]) eye = moveRight(eye, r, 0.1f);
+	if (keys[SDL_SCANCODE_A]) eye = moveRight(eye, r, -0.1f);
+	if (keys[SDL_SCANCODE_R]) eye.y += 0.1f;
+	if (keys[SDL_SCANCODE_F]) eye.y -= 0.1f;
+	if (keys[SDL_SCANCODE_COMMA]) r -= 0.1f;
+	if (keys[SDL_SCANCODE_PERIOD]) r += 0.1f;
+}
+
 void draw(SDL_Window* window) {
 	glEnable(GL_CULL_FACE);
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
@@ -148,6 +170,7 @@ void draw(SDL_Window* window) {
 	glm::mat4 modelView(1.0);
 	drawStack.push(modelView);
 
+	at = moveForward(eye, r, 1.0f);
 	drawStack.top() = glm::lookAt(eye, at, up);
 
 	// draw skybox
@@ -221,6 +244,7 @@ int main(int argc, char* argv[]) {
 		if (events.window.event == SDL_WINDOWEVENT_CLOSE || keys[SDL_SCANCODE_ESCAPE])
 			finish = true;
 		
+		update();
 		draw(window);
 	}
 
