@@ -19,10 +19,14 @@ GLuint meshObjects[1];
 // shaders programs
 GLuint skyboxProgram;
 GLuint gouraudProgram;
+GLuint phongProgram;
+GLuint programChoose;
 
 // Textures
 GLuint skyboxTexture;
 GLuint textures[1];
+
+bool cameraMove = true;
 
 stack<glm::mat4> drawStack;
 
@@ -138,6 +142,11 @@ void init() {
 	gouraudProgram = rt3d::initShaders("src/gouraudShader.vert", "src/gouraudShader.frag");
 	rt3d::setLight(gouraudProgram, light);
 	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
+	programChoose = gouraudProgram;
+
+	phongProgram = rt3d::initShaders("src/phongShader.vert", "src/phongShader.frag");
+	rt3d::setLight(phongProgram, light);
+	rt3d::setMaterial(phongProgram, materialGroundPlane);
 
 	skyboxProgram = rt3d::initShaders("src/skyboxTexture.vert", "src/skyboxTexture.frag");
 
@@ -168,19 +177,46 @@ glm::vec3 moveRight(glm::vec3 pos, GLfloat angle, GLfloat d) {
 
 void update() {
 	const Uint8* keys = SDL_GetKeyboardState(NULL);
-	if (keys[SDL_SCANCODE_W]) eye = moveForward(eye, r, 0.1f);
-	if (keys[SDL_SCANCODE_S]) eye = moveForward(eye, r, -0.1f);
-	if (keys[SDL_SCANCODE_D]) eye = moveRight(eye, r, 0.1f);
-	if (keys[SDL_SCANCODE_A]) eye = moveRight(eye, r, -0.1f);
+	if (cameraMove) {
+		if (keys[SDL_SCANCODE_W]) eye = moveForward(eye, r, 0.1f);
+		if (keys[SDL_SCANCODE_S]) eye = moveForward(eye, r, -0.1f);
+		if (keys[SDL_SCANCODE_D]) eye = moveRight(eye, r, 0.1f);
+		if (keys[SDL_SCANCODE_A]) eye = moveRight(eye, r, -0.1f);
+	}
+	else {
+		if (keys[SDL_SCANCODE_W]) lightPos[2] -= 0.1;
+		if (keys[SDL_SCANCODE_A]) lightPos[0] -= 0.1;
+		if (keys[SDL_SCANCODE_S]) lightPos[2] += 0.1;
+		if (keys[SDL_SCANCODE_D]) lightPos[0] += 0.1;
+	}
+
 	if (keys[SDL_SCANCODE_R]) eye.y += 0.1f;
 	if (keys[SDL_SCANCODE_F]) eye.y -= 0.1f;
 	if (keys[SDL_SCANCODE_COMMA]) --r;
 	if (keys[SDL_SCANCODE_PERIOD]) ++r;
 
-	if (keys[SDL_SCANCODE_I]) lightPos[2] -= 0.1;
-	if (keys[SDL_SCANCODE_J]) lightPos[0] -= 0.1;
-	if (keys[SDL_SCANCODE_K]) lightPos[2] += 0.1;
-	if (keys[SDL_SCANCODE_L]) lightPos[0] += 0.1;
+	if (keys[SDL_SCANCODE_1]) {
+		cout << "You choose the gouraud shader" << endl;
+		programChoose = gouraudProgram;
+	}
+	if (keys[SDL_SCANCODE_2]) {
+		cout << "You choose the phong shader with the matt mode" << endl;
+		programChoose = phongProgram;
+	}
+	if (keys[SDL_SCANCODE_3]) {
+		cout << "You choose the phong shader with the shiny mode" << endl;
+		programChoose = phongProgram;
+	}
+	if (keys[SDL_SCANCODE_4]) {
+		if (cameraMove) {
+			cout << "You can now move the light with AWSD" << endl;
+			cameraMove = false;
+		}
+		else {
+			cout << "You can now move the camera with AWSD" << endl;
+			cameraMove = true;
+		}
+	}
 }
 
 void draw(SDL_Window* window) {
@@ -216,21 +252,21 @@ void draw(SDL_Window* window) {
 	glDepthMask(GL_TRUE);
 
 	//simple cube for test
-	glUseProgram(gouraudProgram);
-	rt3d::setUniformMatrix4fv(gouraudProgram, "projection", glm::value_ptr(projection));
+	glUseProgram(programChoose);
+	rt3d::setUniformMatrix4fv(programChoose, "projection", glm::value_ptr(projection));
 
 	glm::vec4 tmp = drawStack.top() * lightPos;
 	light.position[0] = tmp.x;
 	light.position[1] = tmp.y;
 	light.position[2] = tmp.z;
-	rt3d::setLightPos(gouraudProgram, glm::value_ptr(tmp));
+	rt3d::setLightPos(programChoose, glm::value_ptr(tmp));
 
 	glBindTexture(GL_TEXTURE_2D, textures[0]);
 	drawStack.push(drawStack.top());
 	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(0.0f, 1.0f, -10.0f));
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(1.0f, 1.0f, 1.0f));
-	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
-	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
+	rt3d::setUniformMatrix4fv(programChoose, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setMaterial(programChoose, materialGroundPlane);
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
@@ -239,8 +275,8 @@ void draw(SDL_Window* window) {
 	drawStack.push(drawStack.top());
 	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(-10.0f, -0.1f, -10.0f));
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(20.0f, 0.1f, 20.0f));
-	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
-	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
+	rt3d::setUniformMatrix4fv(programChoose, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setMaterial(programChoose, materialGroundPlane);
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
@@ -249,8 +285,8 @@ void draw(SDL_Window* window) {
 	drawStack.push(drawStack.top());
 	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(0.25f, 0.25f, 0.25f));
-	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
-	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
+	rt3d::setUniformMatrix4fv(programChoose, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setMaterial(programChoose, materialGroundPlane);
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
