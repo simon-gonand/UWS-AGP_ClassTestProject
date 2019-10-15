@@ -1,5 +1,4 @@
-//texture.frag
-//use texture no light
+//gouraudShader.frag
 #version 330
 
 precision highp float;

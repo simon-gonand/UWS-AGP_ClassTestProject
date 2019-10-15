@@ -1,5 +1,4 @@
-//texture.vert
-//use texture no light
+//gouraudShader.vert
 #version 330
 
 struct lightStruct{

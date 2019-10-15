@@ -174,8 +174,13 @@ void update() {
 	if (keys[SDL_SCANCODE_A]) eye = moveRight(eye, r, -0.1f);
 	if (keys[SDL_SCANCODE_R]) eye.y += 0.1f;
 	if (keys[SDL_SCANCODE_F]) eye.y -= 0.1f;
-	if (keys[SDL_SCANCODE_COMMA]) r -= 0.1f;
-	if (keys[SDL_SCANCODE_PERIOD]) r += 0.1f;
+	if (keys[SDL_SCANCODE_COMMA]) --r;
+	if (keys[SDL_SCANCODE_PERIOD]) ++r;
+
+	if (keys[SDL_SCANCODE_I]) lightPos[2] -= 0.1;
+	if (keys[SDL_SCANCODE_J]) lightPos[0] -= 0.1;
+	if (keys[SDL_SCANCODE_K]) lightPos[2] += 0.1;
+	if (keys[SDL_SCANCODE_L]) lightPos[0] += 0.1;
 }
 
 void draw(SDL_Window* window) {
@@ -184,6 +189,7 @@ void draw(SDL_Window* window) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glm::mat4 projection = glm::perspective(float(60.0f * DEG_TO_RADIAN), 800.0f / 600.0f, 1.0f, 150.0f);
+	rt3d::setUniformMatrix4fv(gouraudProgram, "projection", glm::value_ptr(projection));
 
 	glm::mat4 modelView(1.0);
 	drawStack.push(modelView);
@@ -213,11 +219,18 @@ void draw(SDL_Window* window) {
 	glUseProgram(gouraudProgram);
 	rt3d::setUniformMatrix4fv(gouraudProgram, "projection", glm::value_ptr(projection));
 
+	glm::vec4 tmp = drawStack.top() * lightPos;
+	light.position[0] = tmp.x;
+	light.position[1] = tmp.y;
+	light.position[2] = tmp.z;
+	rt3d::setLightPos(gouraudProgram, glm::value_ptr(tmp));
+
 	glBindTexture(GL_TEXTURE_2D, textures[0]);
 	drawStack.push(drawStack.top());
 	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(0.0f, 1.0f, -10.0f));
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(1.0f, 1.0f, 1.0f));
 	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
@@ -227,6 +240,17 @@ void draw(SDL_Window* window) {
 	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(-10.0f, -0.1f, -10.0f));
 	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(20.0f, 0.1f, 20.0f));
 	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
+	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
+	drawStack.pop();
+
+	// draw a small cube block at lightPos
+	glBindTexture(GL_TEXTURE_2D, textures[0]);
+	drawStack.push(drawStack.top());
+	drawStack.top() = glm::translate(drawStack.top(), glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
+	drawStack.top() = glm::scale(drawStack.top(), glm::vec3(0.25f, 0.25f, 0.25f));
+	rt3d::setUniformMatrix4fv(gouraudProgram, "modelView", glm::value_ptr(drawStack.top()));
+	rt3d::setMaterial(gouraudProgram, materialGroundPlane);
 	rt3d::drawIndexedMesh(meshObjects[0], meshIndexCount, GL_TRIANGLES);
 	drawStack.pop();
 
@@ -256,11 +280,10 @@ int main(int argc, char* argv[]) {
 	bool finish = false;
 	SDL_Event events;
 	while (!finish) {
-		SDL_WaitEvent(&events);
-		const Uint8* keys = SDL_GetKeyboardState(NULL);
-
-		if (events.window.event == SDL_WINDOWEVENT_CLOSE || keys[SDL_SCANCODE_ESCAPE])
-			finish = true;
+		while (SDL_PollEvent(&events)) {
+			if (events.type == SDL_QUIT)
+				finish = true;
+		}
 		
 		update();
 		draw(window);
